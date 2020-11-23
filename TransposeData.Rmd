@@ -1,0 +1,56 @@
+---
+title: "TransposeData"
+author: "MPG"
+date: "11/22/2020"
+output: html_document
+---
+
+This script was completed and executed on November 22, 2020 by MPG
+It does:
+1) get raw data from Peipoch's repository
+2) round up decimals of all continuous variables
+3)
+```{r}
+library(readr);library(knitr)
+raw_data = read.csv("https://raw.githubusercontent.com/mpstroud/LTREB_Valett/main/UCFRmtl1.csv")
+
+#round up conc and MDL at 2 decimal points
+raw_data$conc = round(raw_data$conc,2) ; raw_data$MDL = round(raw_data$MDL,2)
+
+#transpose by type and metal
+library(reshape2) ; library(tidyr) ; library(dplyr)
+
+t_data_1 = spread(raw_data, type, conc)
+t_data_filtered = spread(t_data_1, metal, "F") ; t_data_unfiltered = spread(t_data_1, metal, "W")
+t_data_filtered$W = NULL ; t_data_unfiltered$F = NULL #remove old type variable
+
+colnames(t_data_filtered)[9:21] <- paste("Diss", colnames(t_data_filtered)[9:21], sep = "_")
+colnames(t_data_unfiltered)[9:21] <- paste("Tot", colnames(t_data_unfiltered)[9:21], sep = "_")
+
+final = inner_join(t_data_filtered,t_data_unfiltered, by = "sampleno") # merge the two datasets
+lm(final$day.x ~ final$day.y) #correlation between days in dissolved and total subdatasets is perfect what suggest the merge was done well. Just need now to polish and remove unnecessary columns
+
+final[,22:28] = NULL
+colnames(final) = sub(".x", "", colnames(final)) #only problem is that each value of concentration takes a row, need to merge rows by samplno
+final2 = final %>%
+    group_by(sampleno) %>%
+    summarize_all(mean, na.rm = TRUE)
+#works but I lose all factor columns due to skipping mean function for characters ones. I'll patch it up below, probably a better way to do this
+final3 = final %>%
+    arrange(Obs) 
+
+final_temp = left_join(final2,final3,by = "sampleno")
+
+merge(lookup, largetable, by = 'HouseType'))
+
+final2$month <- with(final2,HouseTypeNo[match(largetable$HouseType,HouseType)])
+
+
+
+
+summarize_if(~!is.factor(.), mean, na.rm = TRUE)
+
+
+write.csv(final2, "~/Desktop/horiz_final_LTEB.csv")
+```
+
